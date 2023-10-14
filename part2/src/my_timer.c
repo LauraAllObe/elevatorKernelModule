@@ -13,6 +13,7 @@ MODULE_DESCRIPTION("kernel module for pt2/timer");
 #define PARENT NULL
 
 static struct proc_dir_entry* timer_entry;
+static struct timespec64 previous_time;
 
 static ssize_t timer_read(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
@@ -22,7 +23,18 @@ static ssize_t timer_read(struct file *file, char __user *ubuf, size_t count, lo
 
 	ktime_get_real_ts64(&ts_now);
 
-	len = snprintf(buf, sizeof(buf), "current time: %lld\n", (long long)ts_now.tv_sec);
+	if (previous_time.tv_nsec != 0) {
+		s64 elapsed = ts_now.tv_sec - previous_time.tv_sec;
+		u64 elapsed_nsec = ts_now.tv_nsec - previous_time.tv_nsec;
+		
+		len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\nelapsed time: %lld.%09ld\n",
+		    (long long)ts_now.tv_sec, ts_now.tv_nsec, elapsed, elapsed_nsec);
+	} else {
+		len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\n",
+		    (long long)ts_now.tv_sec, ts_now.tv_nsec);
+	}
+	
+	previous_time = ts_now;
 
 	return simple_read_from_buffer(ubuf, count, ppos, buf, len);
 }
@@ -37,6 +49,7 @@ static int __init timer_init(void)
 	if(!timer_entry) {
 		return -ENOMEM;
 	}
+	ktime_get_real_ts64(&previous_time);
 	return 0;
 }
 
