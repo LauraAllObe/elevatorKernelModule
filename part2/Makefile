@@ -1,21 +1,10 @@
-MODULE_NAME := my_timer
-
-SRC_DIR := src
-SRC_FILES := $(SRC_DIR)/$(MODULE_NAME).c
-
-OUTPUT_DIR := .
-
-obj-m := $(MODULE_NAME).o
-
 KDIR := /lib/modules/$(shell uname -r)/build
+BUILD_DIR := $(PWD)/build
 
-all: $(MODULE_NAME).ko
+obj-m := src/my_timer.o
 
-$(MODULE_NAME).ko: $(SRC_DIR)/$(MODULE_NAME).c
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+all:
+      $(MAKE) -C $(KDIR) M=$(BUILD_DIR) src=$(PWD) modules
 
 clean:
-	$(MAKE) -C $(KDIR) M=$(PWD) clean
-
-
-.PHONY: all clean
+      $(MAKE) -C $(KDIR) M=$(BUILD_DIR) src=$(PWD) clean
