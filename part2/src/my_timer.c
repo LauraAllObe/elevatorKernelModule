@@ -14,6 +14,7 @@ MODULE_DESCRIPTION("kernel module for pt2/timer");
 
 static struct proc_dir_entry* timer_entry;
 static struct timespec64 previous_time;
+static int first = 0;
 
 static ssize_t timer_read(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
@@ -23,18 +24,27 @@ static ssize_t timer_read(struct file *file, char __user *ubuf, size_t count, lo
 
 	ktime_get_real_ts64(&ts_now);
 
-	if (previous_time.tv_nsec != 0) {
-		s64 elapsed = ts_now.tv_sec - previous_time.tv_sec;
-		u64 elapsed_nsec = ts_now.tv_nsec - previous_time.tv_nsec;
-		
-		len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\nelapsed time: %lld.%09ld\n",
-		    (long long)ts_now.tv_sec, ts_now.tv_nsec, elapsed, elapsed_nsec);
-	} else {
-		len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\n",
-		    (long long)ts_now.tv_sec, ts_now.tv_nsec);
+	if (first < 2) {
+                len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\n",
+	    			(long long)ts_now.tv_sec, ts_now.tv_nsec);
 	}
+	else{
+		s64 elapsed = ts_now.tv_sec - previous_time.tv_sec;
+		s64 elapsed_nsec = ts_now.tv_nsec - previous_time.tv_nsec;
+		
+		if (elapsed_nsec < 0) {
+	            elapsed--;
+        	    elapsed_nsec += 1000000000;
+        	}		
+		len = snprintf(buf, sizeof(buf), "current time: %lld.%09ld\n", 
+				(long long)ts_now.tv_sec, ts_now.tv_nsec);
+        	len += snprintf(buf + len, sizeof(buf) - len, "elapsed time: %lld.%09ld\n", 
+				elapsed, elapsed_nsec);
+	}
+	first++;
 	
 	previous_time = ts_now;
+	
 
 	return simple_read_from_buffer(ubuf, count, ppos, buf, len);
 }
@@ -49,7 +59,8 @@ static int __init timer_init(void)
 	if(!timer_entry) {
 		return -ENOMEM;
 	}
-	ktime_get_real_ts64(&previous_time);
+	//ktime_get_real_ts64(&previous_time);
+	//memset(&previous_time, 0, sizeof(previous_time));
 	return 0;
 }
 
