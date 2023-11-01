@@ -63,6 +63,7 @@ struct elev
 };
 
 //for pt3(5)
+static struct proc_dir_entry *elevator_entry;
 char passenger_type_to_char(enum weight year) {
     switch (year) {
         case FRESHMAN:
@@ -78,7 +79,7 @@ char passenger_type_to_char(enum weight year) {
     }
 }
 
-static struct proc_dir_entry *proc_entry;
+static struct proc_dir_entry *proc_entry;//was this meant to be for pt3(5)?
 static struct elev elev;
 static char next_passenger_id = 'A';
 //manage passenger arrivals
@@ -289,7 +290,12 @@ static const struct proc_ops elevator_fops =
 static int __init elevator_init(void)
 {
 	INIT_LIST_HEAD(&elev.floors[0].list);
-	proc_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &procfile_pops);
+	proc_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &procfile_pops);//was this meant to be for pt3(5)?
+	//pt3(5) additions
+	elevator_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &elevator_fops);
+	if(!elevator_entry) {
+		return -ENOMEM;
+	}
 	return 0;
 }
 static int __init elevator_exit(void)
@@ -300,7 +306,9 @@ static int __init elevator_exit(void)
 		list_del(&passenger->list);
 		kfree(passenger);
 	}
-	remove_proc_entry(ENTRY_NAME, PARENT);
+	remove_proc_entry(ENTRY_NAME, PARENT);//was this meant to be for pt3(5)?
+	//pt3(5) additions
+	remove_proc_entry("elevator", NULL);
 }
 
 module_init(elevator_init);
