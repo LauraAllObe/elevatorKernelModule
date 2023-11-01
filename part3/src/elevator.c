@@ -61,6 +61,23 @@ struct elev
 	struct floor floors[6];	
 	struct task_struct *kthread;
 };
+
+//for pt3(5)
+char passenger_type_to_char(enum weight year) {
+    switch (year) {
+        case FRESHMAN:
+            return 'F';
+        case SOPHOMORE:
+            return 'O';
+        case JUNIOR:
+            return 'J';
+        case SENIOR:
+            return 'S';
+        default:
+            return '?';
+    }
+}
+
 static struct proc_dir_entry *proc_entry;
 static struct elev elev;
 static char next_passenger_id = 'A';
@@ -108,16 +125,16 @@ int travel(int curfl, int destfl)
 	if(curfl < destfl)
 	{
 		ssleep(2);
-		elev->status == UP;
+		elev->status = UP;
 		return(curfl++);
 	} else if(curfl > destfl)
 	{
 		ssleep(2);
-		elev->status == DOWN;
+		elev->status = DOWN;
 		return(curfl--);
 	} else
 	{
-		elev->status == IDLE;
+		elev->status = IDLE;
 		serviced++;
 		return(destfl);
 	}
@@ -139,7 +156,7 @@ void elev_state(struct elev * w_thread)
 			{
 				if((list_first_entry(&floor.list, struct passenger, year)+elev->current_weight) <= 750)
 				{
-					elev->status == LOADING;
+					elev->status = LOADING;
 				}
 			} else
 			{
@@ -152,14 +169,14 @@ void elev_state(struct elev * w_thread)
 			{
 				if((list_first_entry(&floor.list, struct passenger, year)+elev->current_weight) <= 750)
 				{
-					elev->status == LOADING;
+					elev->status = LOADING;
 				} else
 				{
 					current_floor = travel(elev->current_floor, list_first_entry(&elev.list, struct passenger, destination_floor);
 				}
 			} else
 			{
-				elev->status == OFFLINE;
+				elev->status = OFFLINE;
 			}
 		}
 	}
@@ -191,10 +208,84 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
 	waiting++;
 	
 }
+
+//part 3(5) additions (not done)
+static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count, loff_t *ppos) {
+    char buf[4096];
+    char *ptr = buf;
+    int len = 0;
+
+    // Elevator state
+    len += snprintf(ptr + len, 4096 - len, "Elevator state: ");
+    switch (elev.status) {
+        case OFFLINE:
+            len += snprintf(ptr + len, 4096 - len, "OFFLINE");
+            break;
+        case IDLE:
+            len += snprintf(ptr + len, 4096 - len, "IDLE");
+            break;
+        case LOADING:
+            len += snprintf(ptr + len, 4096 - len, "LOADING");
+            break;
+        case UP:
+            len += snprintf(ptr + len, 4096 - len, "UP");
+            break;
+        case DOWN:
+            len += snprintf(ptr + len, 4096 - len, "DOWN");
+            break;
+    }
+    len += snprintf(ptr + len, 4096 - len, "\n");
+
+    // Current floor
+    len += snprintf(ptr + len, 4096 - len, "Current floor: %d\n", elev.current_floor);
+
+    // Current load
+    len += snprintf(ptr + len, 4096 - len, "Current load: %d lbs\n", elev.current_weight);
+
+    // List of passengers in the elevator
+    len += snprintf(ptr + len, 4096 - len, "Elevator status: ");
+    struct passenger *pass;
+    list_for_each_entry(pass, &elev.list, list) {
+        len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(pass->year), pass->destination_floor);
+    }
+    len += snprintf(ptr + len, 4096 - len, "\n");
+
+    // Number of passengers
+    int total_passengers = 0;
+    list_for_each_entry(pass, &elev.list, list) {
+        total_passengers++;
+    }
+    len += snprintf(ptr + len, 4096 - len, "Number of passengers: %d\n", total_passengers);
+
+    // Number of passengers waiting on each floor
+    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
+    for (int i = 0; i < 6; i++) {
+        len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
+            (i == elev.current_floor ? '*' : ' '), i + 1, elev.floors[i].num_passengers);
+        struct passenger *floor_pass;
+        list_for_each_entry(floor_pass, &elev.floors[i].list, list) {
+            len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(floor_pass->year), floor_pass->destination_floor);
+        }
+        len += snprintf(ptr + len, 4096 - len, "\n");
+    }
+
+    // Copy data to user space
+    if (*ppos > 0 || count < len) {
+        return 0;
+    }
+    if (copy_to_user(ubuf, buf, len)) {
+        return -EFAULT;
+    }
+    *ppos = len;
+
+    return len;
+}
+
 static const struct proc_ops elevator_fops = 
 {
 	.proc_read = elevator_read,
 };
+
 static int __init elevator_init(void)
 {
 	INIT_LIST_HEAD(&elev.floors[0].list);
