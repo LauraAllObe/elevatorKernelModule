@@ -47,7 +47,7 @@ struct passenger
 
 struct floor
 {
-	int num_passengers;
+	//int num_passengers;
 	struct list_head list;	//people waiting on a floor
 };
 
@@ -58,7 +58,7 @@ struct elev
 	int current_passengers;
 	enum state status;
 	struct list_head list;	//people on the elevator
-	struct floor floors[6];	
+	struct floor floor[6];	
 	struct task_struct *kthread;
 };
 static struct proc_dir_entry *proc_entry;
@@ -98,6 +98,7 @@ static int passdep(void *data)
 			list_del(list_first_entry(&elev->list, struct passenger, list);
 		}
 		mutex_unlock(&buffer_mutex);
+		serviced++;
 	}
 	
 	return 0;
@@ -118,7 +119,7 @@ int travel(int curfl, int destfl)
 	} else
 	{
 		elev->status == IDLE;
-		serviced++;
+		
 		return(destfl);
 	}
 	
@@ -130,8 +131,10 @@ void elev_state(struct elev * w_thread)
 		case: LOADING
 		{
 			ssleep(1);
+			passdep();
 			passarr();
 			current_floor = travel(elev->current_floor, list_first_entry(&elev.list, struct passenger, destination_floor);
+			
 		} case: UP
 		case: DOWN
 		{
@@ -186,7 +189,7 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
 	{
 		next_passenger_id = 'A';
 	}
-	list_add_tail(&new_passenger, &customer->list);
+	list_add_tail(&new_passenger, &passenger->list);
 	list_add_tail(&new_passenger, &elev->floor[new_passenger->currentfloor]->list);
 	waiting++;
 	
