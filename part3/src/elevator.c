@@ -87,7 +87,7 @@ char passenger_type_to_char(enum weight year) {
 }
 
 static struct proc_dir_entry *proc_entry;//was this meant to be for pt3(5)?
-static char next_passenger_id = 'A';
+//static char next_passenger_id = 'A';
 //manage passenger arrivals
 static int passarr(void *data)
 {
@@ -212,11 +212,11 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
 		return -ENOMEM;
 	}
 	
-	new_passenger->id = next_passenger_id++;
-	if(next_passenger_id > 'Z')//why are we using chars? can you increment these?
-	{
-		next_passenger_id = 'A';
-	}
+	//new_passenger->id = next_passenger_id++;
+	//if(next_passenger_id > 'Z')//why are we using chars? can you increment these?
+	//{
+	//	next_passenger_id = 'A';
+	//}
 	list_add_tail(&new_passenger, &customer->list);
 	list_add_tail(&new_passenger, &elev->floor[new_passenger->currentfloor]->list);
 	waiting++;
