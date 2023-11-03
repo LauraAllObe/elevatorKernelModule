@@ -50,11 +50,12 @@ struct passenger
 	struct list_head list;	//passengers
 };
 
+/*
 struct floor
 {
 	int num_passengers;
 	struct list_head list;	//people waiting on a floor
-};
+};*/
 
 struct elevator
 {
