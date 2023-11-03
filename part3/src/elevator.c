@@ -20,6 +20,10 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("cop4610g23");
 MODULE_DESCRIPTION("kernel module for pt3/elevator");
 
+#define MAX_WEIGHT 750
+#define MAX_PASSENGERS 5
+#define NUM_FLOORS 5
+
 #define ENTRY_NAME "elevator"
 #define PERMS 0644
 #define PARENT NULL
@@ -31,16 +35,17 @@ int waiting = 0;
 int serviced = 0;
 struct task_struct *onboarding; //boarding elevator
 struct task_struct *offboarding; //departing elevator
-static DEFINE_MUTEX(buffer_mutex);
+static struct task_struct *elevator_thread;
+static DEFINE_MUTEX(elev_mutex);
 
 enum state {OFFLINE, IDLE, LOADING, UP, DOWN};
 enum weight{FRESHMAN = 100, SOPHMORE = 150, JUNIOR = 200, SENIOR = 250};
 
 struct passenger
 {
-	char id;
+	//char id
 	enum weight year;
-	int current_floor;
+	int start_floor;
 	int destination_floor;
 	struct list_head list;	//passengers
 };
@@ -51,16 +56,17 @@ struct floor
 	struct list_head list;	//people waiting on a floor
 };
 
-struct elev
+struct elevator
 {
 	int current_floor;
 	int current_weight;
-	int current_passengers;
+	int num_passengers;
 	enum state status;
-	struct list_head list;	//people on the elevator
-	struct floor floors[6];	
-	struct task_struct *kthread;
+	struct list_head passengers;	//people on the elevator
+	//struct floor floors[6];	
 };
+
+static struct elevator elev;
 
 //for pt3(5)
 static struct proc_dir_entry *elevator_entry;
@@ -80,7 +86,6 @@ char passenger_type_to_char(enum weight year) {
 }
 
 static struct proc_dir_entry *proc_entry;//was this meant to be for pt3(5)?
-static struct elev elev;
 static char next_passenger_id = 'A';
 //manage passenger arrivals
 static int passarr(void *data)
@@ -107,7 +112,6 @@ static int passarr(void *data)
 		}
 		mutex_unlock(&buffer_mutex);
 	}
-	
 	return 0;
 }
 //manage passenger departures
@@ -297,9 +301,18 @@ static const struct proc_ops elevator_fops =
 
 static int __init elevator_init(void)
 {
-	//INIT_LIST_HEADS?
-	INIT_LIST_HEAD(&elev.floors[0].list);
-	proc_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &procfile_pops);//was this meant to be for pt3(5)?
+	elev.current_floor = 1;
+	elev.current_weight = 0;
+	elev.num_passengers = 0;
+	elev.status = IDLE;
+	INIT_LIST_HEAD(&elev.passengers);
+	elevator_thread = kthread_run(elevator_function, NULL, "elevator_thread");
+	if(IS_ERR(elevator_thread)) {
+		printk(KERN_ERR "Failed to create the elevator thread\n");
+		return PTR_ERR(elevator_thread);
+	}
+	//INIT_LIST_HEAD(&elev.floors[0].list);
+	//proc_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &procfile_pops);//was this meant to be for pt3(5)?
 	//pt3(5) additions
 	elevator_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &elevator_fops);
 	if(!elevator_entry) {
@@ -307,15 +320,20 @@ static int __init elevator_init(void)
 	}
 	return 0;
 }
-static int __init elevator_exit(void)
+static int __exit elevator_exit(void)
 {
+	if(elevator_thread)
+	{
+		kthread_stop(elevator_thread);
+	}
 	struct passenger *passenger, *next;
-	list_for_each_entry_safe(passenger, next, &elev.floors[0].list, list)
+	list_for_each_entry_safe(passenger, next, &elev.passengers, list)
 	{
 		list_del(&passenger->list);
 		kfree(passenger);
 	}
-	remove_proc_entry(ENTRY_NAME, PARENT);//was this meant to be for pt3(5)?
+	print(KERN_INFO "Elevator module unloaded\n");
+	//remove_proc_entry(ENTRY_NAME, PARENT);//was this meant to be for pt3(5)?
 	//pt3(5) additions
 	remove_proc_entry("elevator", NULL);
 }
