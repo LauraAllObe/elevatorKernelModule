@@ -88,12 +88,20 @@ static int passarr(void *data)
 	int i = 0;
 	while(!kthread_should_stop())
 	{
+		//when is this lock being initialized in the code?
 		mutex_lock(&buffer_mutex);
 		if (elev->current_passengers < 5)
 		{
 			
 			elev->current_passengers++;
-			elev->floor[elev->current_floor]->num_passengers--;
+			elev->floor[elev->current_floor]->num_passengers--;//elev->floor doesn't exist?!
+			//not initializing?
+			//Item * item;
+			//Item = kmalloc(sizeof(Item), __GFP_RECLAIM);
+			//Item->num = 0;
+			//list_add_tail(&item->list, &example_list)
+			//how accessing first entry if it doesn't exist?
+			//shouldn't this v be adding a passenger?
 			list_add_tail(&list_first_entry(&elev->floor[elev->current_floor]->list, elev->list);
 			list_del(list_first_entry(&elev->floor[elev->current_floor]->list, struct passenger, list);
 		}
@@ -105,7 +113,7 @@ static int passarr(void *data)
 //manage passenger departures
 static int passdep(void *data)
 {
-	int i = 0;
+	int i = 0;//when is the kthread being stopped??
 	while(!kthread_should_stop())
 	{
 		mutex_lock(&buffer_mutex);
@@ -200,7 +208,7 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
 	}
 	
 	new_passenger->id = next_passenger_id++;
-	if(next_passenger_id > 'Z')
+	if(next_passenger_id > 'Z')//why are we using chars? can you increment these?
 	{
 		next_passenger_id = 'A';
 	}
@@ -289,6 +297,7 @@ static const struct proc_ops elevator_fops =
 
 static int __init elevator_init(void)
 {
+	//INIT_LIST_HEADS?
 	INIT_LIST_HEAD(&elev.floors[0].list);
 	proc_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &procfile_pops);//was this meant to be for pt3(5)?
 	//pt3(5) additions
