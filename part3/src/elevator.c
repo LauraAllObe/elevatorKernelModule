@@ -291,10 +291,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
     list_for_each_entry(pass, &elev.list, list) {
         total_passengers++;
     }
-    len += snprintf(ptr + len, 4096 - len, "Number of passengers: %d\n", total_passengers);
 
-    // Number of passengers waiting on each floor
-    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
     for (int i = 0; i < 6; i++) {
         len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
             (i == elev.current_floor ? '*' : ' '), i + 1, elev.floors[i].num_passengers);
@@ -304,6 +301,11 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
         }
         len += snprintf(ptr + len, 4096 - len, "\n");
     }
+	
+    len += snprintf(ptr + len, 4096 - len, "Number of passengers: %d\n", total_passengers);
+
+    // Number of passengers waiting on each floor
+    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
 
     // Copy data to user space
     if (*ppos > 0 || count < len) {
