@@ -224,7 +224,7 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
 	}
 	if((des>5)||(des<0))
 	{
-		print(KERN_INFO "Error: Invalid Starting Floor");
+		print(KERN_INFO "Error: Invalid Destination Floor");
 		return -ENOMEM;
 	}
 	
