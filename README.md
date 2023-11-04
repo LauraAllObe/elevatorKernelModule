@@ -9,7 +9,7 @@
 ## Division of Labor
 
 ### Part 1: System Call Tracing
-- **Responsibilities**: [Description]
+- **Responsibilities**: Creates two distinct programs to demonstrate and analyze system call operations. The first, named "empty", serves as a baseline and contains no operational system calls. The second, "part1", builds upon the empty program by incorporating four predefined system calls. The task includes utilizing the strace utility to trace the system calls executed by both programs and comparing the results to identify the additional calls in part1.
 - **Assigned to**: Jeyma Rodriguez
 
 ### Part 2: Timer Kernel Module
