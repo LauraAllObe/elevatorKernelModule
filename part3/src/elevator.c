@@ -1,5 +1,5 @@
-#include <string.h>
-/*#include <unistd.h>
+/*#include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -38,7 +38,7 @@ enum state {OFFLINE, IDLE, LOADING, UP, DOWN};
 enum weight{FRESHMAN = 100, SOPHMORE = 150, JUNIOR = 200, SENIOR = 250};
 
 struct mutex mutex;
-mutex_init(&mutex);
+
 
 struct passenger
 {
@@ -51,7 +51,7 @@ struct passenger
 
 struct floor
 {
-	//int num_passengers;
+	int num_passengers;
 	struct list_head list;	//people waiting on a floor
 };
 
@@ -63,7 +63,8 @@ struct elev
 	enum state status;
 	struct list_head list;	//people on the elevator
 	struct floor floor[6];	
-	//struct task_struct *kthread;
+	struct task_struct *arr_thread;
+	struct task_struct *dep_thread;
 };
 //for pt3(5)
 static struct proc_dir_entry *elevator_entry;
@@ -81,24 +82,28 @@ char passenger_type_to_char(int year) {
             return '?';
     }
 }
-static struct elev elev;
+static struct passenger passenger;
+
+
 //manage passenger arrivals
 
 static int passarr(void *data)
 {
-	int i = 0;
+	
 	while(!kthread_should_stop())
 	{
 		
-		if ((mutex_lock_interruptible(&arr->mutex) == 0) &&(elev->current_passengers < 5))
+		if ((mutex_lock_interruptible(&mutex) == 0) &&(elev.current_passengers < 5))
 		{
 			
-			elev->current_passengers++;
-			elev->floor[elev->current_floor]->num_passengers--;
-			list_add_tail(&list_first_entry(&elev->floor[elev->current_floor]->list, elev->list);
-			list_del(list_first_entry(&elev->floor[elev->current_floor]->list, struct passenger, list);
+			elev.current_passengers++;
+			elev.floor[elev.current_floor].num_passengers--;
+			struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+			list_del(&headcopy->list);
+			list_add_tail(&headcopy->list, &elev.list);
+			
 		}
-		mutex_unlock(&arr->mutex);
+		mutex_unlock(&mutex);
 	}
 	
 	return 0;
@@ -106,17 +111,18 @@ static int passarr(void *data)
 //manage passenger departures
 static int passdep(void *data)
 {
-	int i = 0;
+	
 	while(!kthread_should_stop())
 	{
-		mutex_lock(&buffer_mutex);
-		if ((mutex_lock_interruptible(&dep->mutex) == 0) &&(elev->current_passengers > 0))
+		
+		if ((mutex_lock_interruptible(&mutex) == 0) &&(elev.current_passengers > 0))
 		{
 			
-			elev->current_passengers--;
-			list_del(list_first_entry(&elev->list, struct passenger, list);
+			elev.current_passengers--;
+			struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+			list_del(&headcopy->list);
 		}
-		mutex_unlock(&dep->mutex);
+		mutex_unlock(&mutex);
 		serviced++;
 	}
 	
@@ -130,16 +136,16 @@ int travel(int curfl, int destfl)
 	if(curfl < destfl)
 	{
 		ssleep(2);
-		elev->status == UP;
+		elev.status = UP;
 		return(curfl++);
 	} else if(curfl > destfl)
 	{
 		ssleep(2);
-		elev->status == DOWN;
+		elev.status = DOWN;
 		return(curfl--);
 	} else
 	{
-		elev->status == IDLE;
+		elev.status = IDLE;
 		
 		return(destfl);
 	}
@@ -149,48 +155,53 @@ void elev_state(struct elev * w_thread)
 {
 	switch(w_thread->status)
 	{
-		case: LOADING
+		case LOADING:
 		{
 			ssleep(1);
 			passdep();
 			passarr();
-			current_floor = travel(elev->current_floor, list_first_entry(&elev.list, struct passenger, destination_floor);
+			struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+			elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 			
-		} case: UP
-		case: DOWN
+		} case UP:
+		case DOWN:
 		{
 			if(!list_empty(&elev.list))
 			{
-				if((list_first_entry(&floor.list, struct passenger, year)+elev->current_weight) <= 750)
+				struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+				if((headcopy->year+elev.current_weight) <= 750)
 				{
-					elev->status = LOADING;
+					elev.status = LOADING;
 				}
 			} else
 			{
-				current_floor = travel(elev->current_floor, list_first_entry(&elev.list, struct passenger, destination_floor);
+				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 			}
 			
-		} case: IDLE
+		} case IDLE:
 		{
 			if(!list_empty(&elev.list))
 			{
-				if((list_first_entry(&floor.list, struct passenger, year)+elev->current_weight) <= 750)
+				struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+				if((headcopy->year+elev.current_weight) <= 750)
 				{
-					elev->status = LOADING;
+					elev.status = LOADING;
 				} else
 				{
-					current_floor = travel(elev->current_floor, list_first_entry(&elev.list, struct passenger, destination_floor);
+					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 				}
-			} else
+			} default :
 			{
-				elev->status = OFFLINE;
+				elev.status = OFFLINE;
 			}
 		}
 	}
 }
 
 //filing in passengers
-static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff t *ppos
+static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
 	 int ye, cur, des;
 
@@ -213,35 +224,33 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff 
     	ye = 250;
 	} else
 	{
-		print(KERN_INFO "Error: Invalid Year");
+		printk(KERN_INFO "Error: Invalid Year");
 		return -ENOMEM;
 	}
 	
-	if((cur>5)||(curr<0))
+	if((cur>5)||(cur<0))
 	{
-		print(KERN_INFO "Error: Invalid Starting Floor");
+		printk(KERN_INFO "Error: Invalid Starting Floor");
 		return -ENOMEM;
 	}
 	if((des>5)||(des<0))
 	{
-		print(KERN_INFO "Error: Invalid Destination Floor");
+		printk(KERN_INFO "Error: Invalid Destination Floor");
 		return -ENOMEM;
 	}
 	
-	struct passenger *new_passenger = kmalloc(sizeof(struct passenger), GFP_KERNEL);
-	if(!new_passenger)
-	{
-		printk(KERN_INFO "Error: Could not allocate memory for new passenger.\n");
-		return -ENOMEM;
-	}
-	
+	struct passenger new_passenger;
+	new_passenger.year = ye;
+	new_passenger.current_floor = cur;
+	new_passenger.destination_floor = des;
 	/*new_passenger->id = next_passenger_id++;
 	if(next_passenger_id > 'Z')
 	{
 		next_passenger_id = 'A';
 	}*/
-	list_add_tail(&new_passenger, &passenger->list);
-	list_add_tail(&new_passenger, &elev->floor[new_passenger->currentfloor]->list);
+	INIT_LIST_HEAD(&new_passenger.list);
+	list_add_tail(&new_passenger.list, &passenger.list);
+	list_add_tail(&new_passenger.list, &elev.floor[new_passenger.current_floor].list);
 	waiting++;
 	
 }
@@ -294,9 +303,9 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 
     for (int i = 0; i < 6; i++) {
         len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
-            (i == elev.current_floor ? '*' : ' '), i + 1, elev.floors[i].num_passengers);
+            (i == elev.current_floor ? '*' : ' '), i + 1, elev.floor[i].num_passengers);
         struct passenger *floor_pass;
-        list_for_each_entry(floor_pass, &elev.floors[i].list, list) {
+        list_for_each_entry(floor_pass, &elev.floor[i].list, list) {
             len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(floor_pass->year), floor_pass->destination_floor);
         }
         len += snprintf(ptr + len, 4096 - len, "\n");
@@ -325,7 +334,8 @@ static const struct proc_ops elevator_fops =
 };
 static int __init elevator_init(void)
 {
-	
+	static struct elev elev;
+	mutex_init(&mutex);
 	arr_thread = kthread_run(passarr, NULL, "passarr");
 	dep_thread = kthread_run(passdep, NULL, "passdep");
 	elev.current_floor = 1;
