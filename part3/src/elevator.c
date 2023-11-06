@@ -63,6 +63,7 @@ struct elev
 	int current_floor;
 	int current_weight;
 	int current_passengers;
+	int running;
 	enum state status;
 	struct list_head list;	//people on the elevator
 	struct floor floor[6];
@@ -87,69 +88,17 @@ char passenger_type_to_char(int year) {
 static struct passenger passenger;
 static struct elev elev;
 
-int start_elevator(void *data);
+int start_elevator(void);
 int issue_request(int start_floor, int destination_floor, int type);
 int stop_elevator(void);
 int travel(int curfl, int destfl);
 
-extern int (*STUB_start_elevator)(void *);
+extern int (*STUB_start_elevator)(void);
 extern int (*STUB_issue_request)(int,int,int);
 extern int (*STUB_stop_elevator)(void);
 
-int start_elevator(void *data) {
-	while(!kthread_should_stop())
-	{
-		switch(elev.status)
-		{
-			case LOADING:
-			{
-				ssleep(1);
-				stop_elevator();
-				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-				issue_request(headcopy->current_floor, headcopy->destination_floor, headcopy->year);
-				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-				
-				
-			} case UP:
-			case DOWN:
-			{
-				if(!list_empty(&elev.list))
-				{
-					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-					if((headcopy->year+elev.current_weight) <= 750)
-					{
-						elev.status = LOADING;
-					}
-					
-				} else
-				{
-					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-					
-				}
-				
-			} case IDLE:
-			{
-				if(!list_empty(&elev.list))
-				{
-					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-					if((headcopy->year+elev.current_weight) <= 750)
-					{
-						elev.status = LOADING;
-					} else
-					{
-						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-					}
-				} default :
-				{
-					elev.status = OFFLINE;
-					break;
-				}
-			}
-		}
-	}
-	return 0;
+int start_elevator(void) {
+	
 }
 
 int issue_request(int start_floor, int destination_floor, int type) {
@@ -212,7 +161,62 @@ int travel(int curfl, int destfl)
 	
 }
 
-
+int elev_thread_run(void *data)
+{
+	while(!kthread_should_stop())
+	{
+		switch(elev.status)
+		{
+			case LOADING:
+			{
+				ssleep(1);
+				stop_elevator();
+				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+				issue_request(headcopy->current_floor, headcopy->destination_floor, headcopy->year);
+				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+				
+				
+			} case UP:
+			case DOWN:
+			{
+				if(!list_empty(&elev.list))
+				{
+					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+					if((headcopy->year+elev.current_weight) <= 750)
+					{
+						elev.status = LOADING;
+					}
+					
+				} else
+				{
+					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					
+				}
+				
+			} case IDLE:
+			{
+				if(!list_empty(&elev.list))
+				{
+					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+					if((headcopy->year+elev.current_weight) <= 750)
+					{
+						elev.status = LOADING;
+					} else
+					{
+						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					}
+				} default :
+				{
+					elev.status = OFFLINE;
+					break;
+				}
+			}
+		}
+	}
+	return 0;
+}
 //filing in passengers
 static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
 {
