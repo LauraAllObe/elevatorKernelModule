@@ -4,7 +4,7 @@ consumer: consumer.c wrappers.h
 	gcc consumer.c -o consumer
 
 producer: producer.c wrappers.h
-	gcc consumer.c -o producer
+	gcc producer.c -o producer
 
 .PHONY: all run clean
 
