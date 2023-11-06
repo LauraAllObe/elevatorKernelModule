@@ -86,6 +86,30 @@ char passenger_type_to_char(int year) {
 static struct passenger passenger;
 static struct elev elev;
 
+long start_elevator(void);
+long issue_request(int start_floor, int destination_floor, int type);
+long stop_elevator(void);
+
+extern long (*STUB_start_elevator)(void);
+extern long (*STUB_issue_request)(int,int,int);
+extern long (*STUB_stop_elevator)(void);
+
+long start_elevator(void) {
+	//when elevator is started
+	return 0;
+}
+
+long issue_request(int start_floor, int destination_floor, int type) {
+	//add passengers topassenger structure/list
+	return 0;
+}
+
+long stop_elevator(void) {
+	//when elevator is stopped
+	return 0;
+}
+//need to setup in init and set to NULL in exit
+
 //manage passenger arrivals
 
 static int passarr(void *data)
@@ -333,9 +357,11 @@ static const struct proc_ops elevator_fops =
 {
 	.proc_read = elevator_read,
 };
-int __init elevator_init(void)
+static int __init elevator_init(void)
 {
-	
+	STUB_start_elevator = start_elevator;
+	STUB_issue_request = issue_request;
+	STUB_stop_elevator = stop_elevator;
 	mutex_init(&mutex);
 	arr_thread = kthread_run(passarr, NULL, "passarr");
 	dep_thread = kthread_run(passdep, NULL, "passdep");
@@ -357,8 +383,11 @@ int __init elevator_init(void)
 	}
 	return 0;
 }
-static int __exit elevator_exit(void)
+static void __exit elevator_exit(void)
 {
+	STUB_start_elevator = NULL;
+	STUB_issue_request = NULL;
+	STUB_stop_elevator = NULL;
 	if(arr_thread)
 	{
 		kthread_stop(arr_thread);
