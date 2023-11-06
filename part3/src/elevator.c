@@ -33,16 +33,16 @@ int serviced = 0;
 //static DEFINE_MUTEX(elev_mutex);
 
 
-struct task_struct *arr_thread;
-struct task_struct *dep_thread;
-static int passarr(void *data);
-static int passdep(void *data);
 enum state {OFFLINE, IDLE, LOADING, UP, DOWN};
 enum weight{FRESHMAN = 100, SOPHMORE = 150, JUNIOR = 200, SENIOR = 250};
+typedef struct thread_param
+{
+	int id;
+	int cnt;
+	struct task_struct *kthread;
+	struct mutex mutex;
 
-struct mutex mutex;
-
-
+};
 struct passenger
 {
 	//char id;
@@ -67,6 +67,7 @@ struct elev
 	struct list_head list;	//people on the elevator
 	struct floor floor[6];
 };
+struct thread_param thread;
 //for pt3(5)
 static struct proc_dir_entry *elevator_entry;
 char passenger_type_to_char(int year) {
@@ -86,73 +87,107 @@ char passenger_type_to_char(int year) {
 static struct passenger passenger;
 static struct elev elev;
 
-long start_elevator(void);
-long issue_request(int start_floor, int destination_floor, int type);
-long stop_elevator(void);
+int start_elevator(void *data);
+int issue_request(int start_floor, int destination_floor, int type);
+int stop_elevator(void);
+int travel(int curfl, int destfl);
 
-extern long (*STUB_start_elevator)(void);
-extern long (*STUB_issue_request)(int,int,int);
-extern long (*STUB_stop_elevator)(void);
+extern int (*STUB_start_elevator)(void *);
+extern int (*STUB_issue_request)(int,int,int);
+extern int (*STUB_stop_elevator)(void);
 
-long start_elevator(void) {
-	//when elevator is started
+int start_elevator(void *data) {
+	while(!kthread_should_stop())
+	{
+		switch(elev.status)
+		{
+			case LOADING:
+			{
+				ssleep(1);
+				stop_elevator();
+				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+				issue_request(headcopy->current_floor, headcopy->destination_floor, headcopy->year);
+				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+				
+				
+			} case UP:
+			case DOWN:
+			{
+				if(!list_empty(&elev.list))
+				{
+					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+					if((headcopy->year+elev.current_weight) <= 750)
+					{
+						elev.status = LOADING;
+					}
+					
+				} else
+				{
+					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					
+				}
+				
+			} case IDLE:
+			{
+				if(!list_empty(&elev.list))
+				{
+					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+					if((headcopy->year+elev.current_weight) <= 750)
+					{
+						elev.status = LOADING;
+					} else
+					{
+						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					}
+				} default :
+				{
+					elev.status = OFFLINE;
+					break;
+				}
+			}
+		}
+	}
 	return 0;
 }
 
-long issue_request(int start_floor, int destination_floor, int type) {
-	//add passengers topassenger structure/list
+int issue_request(int start_floor, int destination_floor, int type) {
+
+		
+	if ((mutex_lock_interruptible(&thread.mutex) == 0) &&(elev.current_passengers < 5))
+	{
+		
+		elev.current_passengers++;
+		elev.floor[elev.current_floor].num_passengers--;
+		struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+		list_del(&headcopy->list);
+		list_add_tail(&headcopy->list, &elev.list);
+		
+	}
+	mutex_unlock(&thread.mutex);
+
 	return 0;
 }
 
-long stop_elevator(void) {
-	//when elevator is stopped
+int stop_elevator(void) {
+
+	
+	if ((mutex_lock_interruptible(&thread.mutex) == 0) &&(elev.current_passengers > 0))
+	{
+		
+		elev.current_passengers--;
+		struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+		list_del(&headcopy->list);
+	}
+	mutex_unlock(&thread.mutex);
+	serviced++;
+
 	return 0;
 }
 //need to setup in init and set to NULL in exit
 
-//manage passenger arrivals
 
-static int passarr(void *data)
-{
-	
-	while(!kthread_should_stop())
-	{
-		
-		if ((mutex_lock_interruptible(&mutex) == 0) &&(elev.current_passengers < 5))
-		{
-			
-			elev.current_passengers++;
-			elev.floor[elev.current_floor].num_passengers--;
-			struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-			list_del(&headcopy->list);
-			list_add_tail(&headcopy->list, &elev.list);
-			
-		}
-		mutex_unlock(&mutex);
-	}
-	
-	return 0;
-}
-//manage passenger departures
-static int passdep(void *data)
-{
-	
-	while(!kthread_should_stop())
-	{
-		
-		if ((mutex_lock_interruptible(&mutex) == 0) &&(elev.current_passengers > 0))
-		{
-			
-			elev.current_passengers--;
-			struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-			list_del(&headcopy->list);
-		}
-		mutex_unlock(&mutex);
-		serviced++;
-	}
-	
-	return 0;
-}
 //thread init
 
 //next elevator move
@@ -176,54 +211,7 @@ int travel(int curfl, int destfl)
 	}
 	
 }
-void elev_state(struct elev * w_thread)
-{
-	switch(w_thread->status)
-	{
-		case LOADING:
-		{
-			ssleep(1);
-			passdep();
-			passarr();
-			struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-			elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-			
-		} case UP:
-		case DOWN:
-		{
-			if(!list_empty(&elev.list))
-			{
-				struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-				if((headcopy->year+elev.current_weight) <= 750)
-				{
-					elev.status = LOADING;
-				}
-			} else
-			{
-				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-			}
-			
-		} case IDLE:
-		{
-			if(!list_empty(&elev.list))
-			{
-				struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-				if((headcopy->year+elev.current_weight) <= 750)
-				{
-					elev.status = LOADING;
-				} else
-				{
-					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-				}
-			} default :
-			{
-				elev.status = OFFLINE;
-			}
-		}
-	}
-}
+
 
 //filing in passengers
 static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
@@ -278,6 +266,14 @@ static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff_
 	list_add_tail(&new_passenger.list, &elev.floor[new_passenger.current_floor].list);
 	waiting++;
 	
+}
+void thread_init_param(struct thread_param *param)
+{
+	static int id = 1;
+	param->id = id++;
+	param->cnt = 0;
+	mutex_init(&param->mutex);
+	param->kthread = kthread_run(start_elevator, param, "thread example %d", param->id);
 }
 //part 3(5) additions (not done)
 static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count, loff_t *ppos) {
@@ -362,9 +358,7 @@ static int __init elevator_init(void)
 	STUB_start_elevator = start_elevator;
 	STUB_issue_request = issue_request;
 	STUB_stop_elevator = stop_elevator;
-	mutex_init(&mutex);
-	arr_thread = kthread_run(passarr, NULL, "passarr");
-	dep_thread = kthread_run(passdep, NULL, "passdep");
+	mutex_init(&thread.mutex);
 	/*elev.current_floor = 1;
 	elev.current_weight = 0;
 	elev.current_passengers = 0;
@@ -372,10 +366,11 @@ static int __init elevator_init(void)
 	INIT_LIST_HEAD(&elev.list);
 	INIT_LIST_HEAD(&floor.list);
 	INIT_LIST_HEAD(&passenger.list);
-	elevator_thread = kthread_run(elevator_function, NULL, "elevator_thread");
-	if(IS_ERR(elevator_thread)) {
-		printk(KERN_ERR "Failed to create the elevator thread\n");
-		return PTR_ERR(elevator_thread);
+	thread_init_param(&thread);
+	if(IS_ERR(thread.kthread)
+	{
+		printk(KERN_WARNING "Error creating thread");
+		return PTR_ERR(thread.kthread);
 	}
 	elevator_entry = proc_create(ENTRY_NAME, PERMS, PARENT, &elevator_fops);
 	if(!elevator_entry) {
@@ -388,14 +383,11 @@ static void __exit elevator_exit(void)
 	STUB_start_elevator = NULL;
 	STUB_issue_request = NULL;
 	STUB_stop_elevator = NULL;
-	if(arr_thread)
+	if(hread)
 	{
-		kthread_stop(arr_thread);
+		kthread_stop(thread.kthread);
 	}
-	if(dep_thread)
-	{
-		kthread_stop(dep_thread);
-	}
+	mutex_destroy(&thread.mutex);
 	struct passenger *passenger, *next;
 	list_for_each_entry_safe(passenger, next, &elev.passengers, list)
 	{
