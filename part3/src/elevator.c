@@ -30,10 +30,13 @@ MODULE_DESCRIPTION("kernel module for pt3/elevator");
 
 int waiting = 0;
 int serviced = 0;
-//struct task_struct *onboarding; //boarding elevator
-//struct task_struct *offboarding; //departing elevator
 //static DEFINE_MUTEX(elev_mutex);
 
+
+struct task_struct *arr_thread;
+struct task_struct *dep_thread;
+static int passarr(void *data);
+static int passdep(void *data);
 enum state {OFFLINE, IDLE, LOADING, UP, DOWN};
 enum weight{FRESHMAN = 100, SOPHMORE = 150, JUNIOR = 200, SENIOR = 250};
 
@@ -62,9 +65,7 @@ struct elev
 	int current_passengers;
 	enum state status;
 	struct list_head list;	//people on the elevator
-	struct floor floor[6];	
-	struct task_struct *arr_thread;
-	struct task_struct *dep_thread;
+	struct floor floor[6];
 };
 //for pt3(5)
 static struct proc_dir_entry *elevator_entry;
@@ -83,7 +84,7 @@ char passenger_type_to_char(int year) {
     }
 }
 static struct passenger passenger;
-
+static struct elev elev;
 
 //manage passenger arrivals
 
@@ -332,17 +333,19 @@ static const struct proc_ops elevator_fops =
 {
 	.proc_read = elevator_read,
 };
-static int __init elevator_init(void)
+int __init elevator_init(void)
 {
-	static struct elev elev;
+	
 	mutex_init(&mutex);
 	arr_thread = kthread_run(passarr, NULL, "passarr");
 	dep_thread = kthread_run(passdep, NULL, "passdep");
-	elev.current_floor = 1;
+	/*elev.current_floor = 1;
 	elev.current_weight = 0;
-	elev.num_passengers = 0;
-	elev.status = IDLE;
-	INIT_LIST_HEAD(&elev.passengers);
+	elev.current_passengers = 0;
+	elev.status = IDLE;*/
+	INIT_LIST_HEAD(&elev.list);
+	INIT_LIST_HEAD(&floor.list);
+	INIT_LIST_HEAD(&passenger.list);
 	elevator_thread = kthread_run(elevator_function, NULL, "elevator_thread");
 	if(IS_ERR(elevator_thread)) {
 		printk(KERN_ERR "Failed to create the elevator thread\n");
@@ -354,7 +357,7 @@ static int __init elevator_init(void)
 	}
 	return 0;
 }
-static int __init elevator_exit(void)
+static int __exit elevator_exit(void)
 {
 	if(arr_thread)
 	{
