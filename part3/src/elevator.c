@@ -492,7 +492,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
 
 	    // Number of passengers serviced
-	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", serviced);
+	    len += snprintf(ptr + len, 4096 - len, "Number of passengers serviced: %d\n", serviced);
 
 	    // Copy data to user space
 	    if (*ppos > 0 || count < len) {
