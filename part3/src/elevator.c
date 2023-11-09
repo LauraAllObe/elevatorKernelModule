@@ -444,8 +444,8 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	char buf[4096];
 	char *ptr = buf;
 	int len = 0;
-	if ((mutex_lock_interruptible(&thread.mutex1) == 0) && ((mutex_lock_interruptible(&thread.mutex2) == 0)))
-   	{
+	//if ((mutex_lock_interruptible(&thread.mutex1) == 0) && ((mutex_lock_interruptible(&thread.mutex2) == 0)))
+   	//{
     	    // Elevator state
 	    len += snprintf(ptr + len, 4096 - len, "Elevator state: ");
 	    switch (elev.status) {
@@ -487,7 +487,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 		total_passengers++;
 	    }
 
-	    for (int i = 0; i < 6; i++) {
+	    for (int i = 5; i >= 0; i--) {
 		len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
 		    (i == elev.current_floor ? '*' : ' '), i + 1, elev.floor[i].num_passengers);
 		struct passenger *floor_pass;
@@ -503,7 +503,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
 
 	    // Number of passengers serviced
-	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", serviced);
+	    len += snprintf(ptr + len, 4096 - len, "Number of passengers serviced: %d\n", serviced);
 
 	    // Copy data to user space
 	    if (*ppos > 0 || count < len) {
@@ -514,9 +514,9 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    }
 	    *ppos = len;
 	    
-	    mutex_unlock(&thread.mutex1);
-	    mutex_unlock(&thread.mutex2);
-    }
+	    //mutex_unlock(&thread.mutex1);
+	    //mutex_unlock(&thread.mutex2);
+    //}
     return len;
 }
 
