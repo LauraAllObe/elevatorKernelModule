@@ -324,7 +324,7 @@ int elev_thread_run(void *data)
 				} case UP:
 				case DOWN:
 				{
-					if(elev.floor[current_floor].num_passengers > 0)
+					if(elev.floor[elev.current_floor].num_passengers > 0)
 					{
 						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
 						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
@@ -343,7 +343,7 @@ int elev_thread_run(void *data)
 					break;
 				} case IDLE:
 				{
-					if(elev.floor[current_floor].num_passengers > 0)
+					if(elev.floor[elev.current_floor].num_passengers > 0)
 					{
 						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
 						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
@@ -539,6 +539,7 @@ static int __init elevator_init(void)
 	INIT_LIST_HEAD(&elev.list);
 	for(int i=0; i < 6; i++)
 	{
+		elev.floor[i].num_passengers = 0;
 		INIT_LIST_HEAD(&elev.floor[i].list);
 	}
 	
