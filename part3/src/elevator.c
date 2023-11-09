@@ -148,7 +148,12 @@ int issue_request(int start_floor, int destination_floor, int type) {
 	}
 	if(mutex_lock_interruptible(&thread.mutex1) == 0)
 	{
-		struct passenger new_passenger;
+		struct passenger *new_passenger = kmalloc(sizeof(struct passenger), GFP_KERNEL);
+		if (!new_passenger)
+	    {
+	        mutex_unlock(&thread.mutex1);
+	        return -ENOMEM;
+	    }
 		new_passenger.year = type;
 		new_passenger.current_floor = start_floor-1;
 		new_passenger.destination_floor = destination_floor-1;
@@ -161,8 +166,9 @@ int issue_request(int start_floor, int destination_floor, int type) {
 		//list_add_tail(&new_passenger.list, &passenger.list);
 		list_add_tail(&new_passenger.list, &elev.floor[new_passenger.current_floor].list);
 		waiting++;
+		mutex_unlock(&thread.mutex1);
 	}
-	mutex_unlock(&thread.mutex1);
+	
 	return 0;
 }
 
@@ -358,7 +364,7 @@ int elev_thread_run(void *data)
 									if((c-i) < sptp)
 									{
 										sptp = c-i;
-										ud = d;
+										ud = 0;
 									}
 								} else
 								{
