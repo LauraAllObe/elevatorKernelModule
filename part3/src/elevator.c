@@ -229,13 +229,13 @@ int travel(int curfl, int destfl)
 		printk(KERN_INFO "UP");
 		ssleep(2);
 		elev.status = UP;
-		return(curfl++);
+		return(curfl+1);
 	} else if(curfl > destfl)
 	{
 		printk(KERN_INFO "DOWN");
 		ssleep(2);
 		elev.status = DOWN;
-		return(curfl--);
+		return(curfl-1);
 	} else
 	{
 		printk(KERN_INFO "IDLE");
