@@ -357,7 +357,7 @@ int elev_thread_run(void *data)
 								if((c-i) < sptp)
 								{
 									sptp = c-i;
-									ud = d;
+									ud = 0;
 								}
 							} else
 							{
