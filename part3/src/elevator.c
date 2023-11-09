@@ -476,7 +476,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 		total_passengers++;
 	    }
 
-	    for (int i = 5; i >= 0; i--) {
+	    for (int i = 0; i < 6; i++) {
 		len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
 		    (i == elev.current_floor ? '*' : ' '), i + 1, elev.floor[i].num_passengers);
 		struct passenger *floor_pass;
@@ -503,8 +503,8 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    }
 	    *ppos = len;
 	    
-    mutex_unlock(&thread.mutex1);
-    mutex_unlock(&thread.mutex2);
+	    mutex_unlock(&thread.mutex1);
+	    mutex_unlock(&thread.mutex2);
     }
     return len;
 }
