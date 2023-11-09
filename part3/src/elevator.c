@@ -193,9 +193,9 @@ int stop_elevator(void) {
 			elev.floor[i].num_passengers = 0;
 		}
 				
-		
+		mutex_unlock(&thread.mutex1);
 	}
-	mutex_unlock(&thread.mutex1);
+	
 	struct passenger *p;
 	list_for_each_safe(temp1, temp2, &temp_list)
 	{
@@ -259,9 +259,9 @@ int loading(void) {
 			list_add_tail(&headcopy->list, &elev.list);
 		}
 				
-		
+		mutex_unlock(&thread.mutex2);
 	}
-	mutex_unlock(&thread.mutex2);
+	
 	return 0; 
 }
 
@@ -287,9 +287,9 @@ int unloading(void) {
 		}
 			
 				
-		
+		mutex_unlock(&thread.mutex2);
 	}
-	mutex_unlock(&thread.mutex2);
+	
 	list_for_each_safe(temp1, temp2, &temp_list)
 	{
 		p = list_entry(temp1, struct passenger, list);
@@ -499,9 +499,10 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 		return -EFAULT;
 	    }
 	    *ppos = len;
-    }
+	    
     mutex_unlock(&thread.mutex1);
     mutex_unlock(&thread.mutex2);
+    }
     return len;
 }
 
