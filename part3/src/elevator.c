@@ -532,10 +532,10 @@ static int __init elevator_init(void)
 	STUB_stop_elevator = stop_elevator;
 	mutex_init(&thread.mutex1);
 	mutex_init(&thread.mutex2);
-	/*elev.current_floor = 1;
+	elev.current_floor = 1;
 	elev.current_weight = 0;
 	elev.current_passengers = 0;
-	elev.status = IDLE;*/
+	elev.status = OFFLINE;
 	INIT_LIST_HEAD(&elev.list);
 	for(int i=0; i < 6; i++)
 	{
