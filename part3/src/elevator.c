@@ -224,20 +224,20 @@ int travel(int curfl, int destfl)
 		printk(KERN_INFO "T");
 	if(curfl < destfl)
 	{
+		printk(KERN_INFO "UP");
 		ssleep(2);
 		elev.status = UP;
-		elev.running = 1;
 		return(curfl++);
 	} else if(curfl > destfl)
 	{
+		printk(KERN_INFO "DOWN");
 		ssleep(2);
 		elev.status = DOWN;
-		elev.running = 1;
 		return(curfl--);
 	} else
 	{
+		printk(KERN_INFO "IDLE");
 		elev.status = IDLE;
-		elev.stopped = 1;
 		return(destfl);
 	}
 	
@@ -312,7 +312,7 @@ int elev_thread_run(void *data)
 			switch(elev.status)
 			{
 				case LOADING:
-				{
+				{	printk(KERN_INFO "LOADING");
 					ssleep(1);
 					loading();
 					unloading();
@@ -329,11 +329,13 @@ int elev_thread_run(void *data)
 						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
 						{
 							elev.status = LOADING;
+							printk(KERN_INFO "LOAD FROM UP/DOWN");
 						}
 						
 					} else
 					{
 						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+						printk(KERN_INFO "TRAVEL FROM UP/DOWN");
 						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 						
 					}
@@ -345,14 +347,17 @@ int elev_thread_run(void *data)
 						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
 						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
 						{
+							printk(KERN_INFO "LOADING FROM IDLE");
 							elev.status = LOADING;
 						} else
 						{
 							struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+							printk(KERN_INFO "TRAVEL FROM IDLE");
 							elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 						}
 					} else if(waiting>=1)
 					{
+						printk(KERN_INFO "CHECKING SPTP");
 						int c = elev.current_floor;
 						int sptp = 6; //shortest path to passenger
 						int ud = 0; //0 = down, 1 = up
@@ -379,15 +384,18 @@ int elev_thread_run(void *data)
 						}
 						if(ud == 0)
 						{
+							printk(KERN_INFO "TRAVEL DOWN FROM SPTP");
 							elev.current_floor = travel(elev.current_floor, elev.current_floor - 1);
 						} else
 						{
+							printk(KERN_INFO "TRAVEL UP FROM SPTP");
 							elev.current_floor = travel(elev.current_floor, elev.current_floor + 1);
 						}
 						
 						
 					} else
 					{
+						printk(KERN_INFO "REMAIN IDLE");
 						ssleep(1);	
 					}
 					break;
@@ -395,6 +403,7 @@ int elev_thread_run(void *data)
 				}
 				case OFFLINE:
 					{
+						printk(KERN_INFO "OFFLINE FROM SWITCH");
 						elev.running = 0;
 						elev.stopped = 1;
 						ssleep(1);
@@ -402,12 +411,14 @@ int elev_thread_run(void *data)
 					}
 				default :
 				{
+					printk(KERN_INFO "DEFAULT TRIGGERED");
 					elev.status = OFFLINE;
 					break;
 				}
 			}
 		} else
 		{
+			printk(KERN_INFO "OFFLINE");
 			ssleep(1);
 		}
 		
@@ -492,7 +503,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", waiting);
 
 	    // Number of passengers serviced
-	    len += snprintf(ptr + len, 4096 - len, "Number of passengers serviced: %d\n", serviced);
+	    len += snprintf(ptr + len, 4096 - len, "Number of passengers waiting: %d\n", serviced);
 
 	    // Copy data to user space
 	    if (*ppos > 0 || count < len) {
