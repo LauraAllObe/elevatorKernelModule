@@ -108,6 +108,7 @@ int start_elevator(void) {
 	{
 		elev.running = 1;
 		elev.stopped = 0;
+		elev.status = IDLE;
 	}
 	return 0;
 }
@@ -154,17 +155,17 @@ int issue_request(int start_floor, int destination_floor, int type) {
 	        mutex_unlock(&thread.mutex1);
 	        return -ENOMEM;
 	    }
-		new_passenger.year = type;
-		new_passenger.current_floor = start_floor-1;
-		new_passenger.destination_floor = destination_floor-1;
+		new_passenger->year = type;
+		new_passenger->current_floor = start_floor-1;
+		new_passenger->destination_floor = destination_floor-1;
 		/*new_passenger->id = next_passenger_id++;
 		if(next_passenger_id > 'Z')
 		{
 			next_passenger_id = 'A';
 		}*/
-		INIT_LIST_HEAD(&new_passenger.list);
+		INIT_LIST_HEAD(&new_passenger->list);
 		//list_add_tail(&new_passenger.list, &passenger.list);
-		list_add_tail(&new_passenger.list, &elev.floor[new_passenger.current_floor].list);
+		list_add_tail(&new_passenger->list, &elev.floor[new_passenger->current_floor].list);
 		waiting++;
 		mutex_unlock(&thread.mutex1);
 	}
@@ -394,6 +395,8 @@ int elev_thread_run(void *data)
 				}
 				case OFFLINE:
 					{
+						elev.running = 0;
+						elev.stopped = 1;
 						ssleep(1);
 						break;
 					}
@@ -473,7 +476,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 		total_passengers++;
 	    }
 
-	    for (int i = 0; i < 6; i++) {
+	    for (int i = 5; i >= 0; i--) {
 		len += snprintf(ptr + len, 4096 - len, "[%c] Floor %d: %d ", 
 		    (i == elev.current_floor ? '*' : ' '), i + 1, elev.floor[i].num_passengers);
 		struct passenger *floor_pass;
