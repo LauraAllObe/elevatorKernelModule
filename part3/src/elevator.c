@@ -114,10 +114,10 @@ int start_elevator(void) {
 
 int issue_request(int start_floor, int destination_floor, int type) {
 	printk(KERN_INFO "IR");
-	if(!elev.running)
+	/*if(!elev.running)
 	{
 		return 1;
-	}
+	}*/
     if(type==0)
     {
     	type = 100;
@@ -136,12 +136,12 @@ int issue_request(int start_floor, int destination_floor, int type) {
 		return -ENOMEM;
 	}
 	
-	if((start_floor>5)||(start_floor<0))
+	if((start_floor>6)||(start_floor<1))
 	{
 		printk(KERN_INFO "Error: Invalid Starting Floor");
 		return -ENOMEM;
 	}
-	if((destination_floor>5)||(destination_floor<0))
+	if((destination_floor>6)||(destination_floor<1))
 	{
 		printk(KERN_INFO "Error: Invalid Destination Floor");
 		return -ENOMEM;
@@ -150,8 +150,8 @@ int issue_request(int start_floor, int destination_floor, int type) {
 	{
 		struct passenger new_passenger;
 		new_passenger.year = type;
-		new_passenger.current_floor = start_floor;
-		new_passenger.destination_floor = destination_floor;
+		new_passenger.current_floor = start_floor-1;
+		new_passenger.destination_floor = destination_floor-1;
 		/*new_passenger->id = next_passenger_id++;
 		if(next_passenger_id > 'Z')
 		{
@@ -300,102 +300,109 @@ int elev_thread_run(void *data)
 		printk(KERN_INFO "ETR");
 	while(!kthread_should_stop())
 	{
-		
-		switch(elev.status)
+		if(elev.running)
 		{
-			case LOADING:
+			switch(elev.status)
 			{
-				ssleep(1);
-				loading();
-				unloading();
-				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-				break;
-				
-			} case UP:
-			case DOWN:
-			{
-				if(!list_empty(&elev.list))
+				case LOADING:
 				{
-					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-					if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
-					{
-						elev.status = LOADING;
-					}
-					
-				} else
-				{
+					ssleep(1);
+					loading();
+					unloading();
 					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
 					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					break;
 					
-				}
-				break;
-			} case IDLE:
-			{
-				if(!list_empty(&elev.list))
+				} case UP:
+				case DOWN:
 				{
-					struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-					if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
+					if(!list_empty(&elev.list))
 					{
-						elev.status = LOADING;
+						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
+						{
+							elev.status = LOADING;
+						}
+						
 					} else
 					{
 						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
 						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+						
 					}
-				} else if(waiting>=1)
+					break;
+				} case IDLE:
 				{
-					int c = elev.current_floor;
-					int sptp = 6; //shortest path to passenger
-					int ud = 0; //0 = down, 1 = up
-					for(int i = 0; i < 6; i++)
+					if(!list_empty(&elev.list))
 					{
-						if(elev.floor[i].num_passengers > 0)
+						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
+						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
 						{
-							if(c > i)
+							elev.status = LOADING;
+						} else
+						{
+							struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+							elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+						}
+					} else if(waiting>=1)
+					{
+						int c = elev.current_floor;
+						int sptp = 6; //shortest path to passenger
+						int ud = 0; //0 = down, 1 = up
+						for(int i = 0; i < 6; i++)
+						{
+							if(elev.floor[i].num_passengers > 0)
 							{
-								if((c-i) < sptp)
+								if(c > i)
 								{
-									sptp = c-i;
-									ud = 0;
-								}
-							} else
-							{
-								if((i-c) < sptp)
+									if((c-i) < sptp)
+									{
+										sptp = c-i;
+										ud = d;
+									}
+								} else
 								{
-									sptp = i-c;
-									ud = 1;
+									if((i-c) < sptp)
+									{
+										sptp = i-c;
+										ud = 1;
+									}
 								}
 							}
 						}
-					}
-					if(ud == 0)
-					{
-						elev.current_floor = travel(elev.current_floor, elev.current_floor - 1);
+						if(ud == 0)
+						{
+							elev.current_floor = travel(elev.current_floor, elev.current_floor - 1);
+						} else
+						{
+							elev.current_floor = travel(elev.current_floor, elev.current_floor + 1);
+						}
+						
+						
 					} else
 					{
-						elev.current_floor = travel(elev.current_floor, elev.current_floor + 1);
-					}
-					
-					
-				}
-				break;
-	
-			}
-			case OFFLINE:
-				{
-					if(waiting > 0)
-					{
-						elev.status = IDLE;
+						ssleep(1);	
 					}
 					break;
+		
 				}
-			default :
-			{
-				elev.status = OFFLINE;
-				break;
+				case OFFLINE:
+					{
+						ssleep(1);
+						break;
+					}
+				default :
+				{
+					elev.status = OFFLINE;
+					break;
+				}
 			}
+		} else
+		{
+			ssleep(1);
 		}
+		
+		
 
 	}
 	return 0;
