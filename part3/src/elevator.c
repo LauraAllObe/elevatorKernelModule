@@ -100,6 +100,7 @@ extern int (*STUB_issue_request)(int,int,int);
 extern int (*STUB_stop_elevator)(void);
 
 int start_elevator(void) {
+	printk(KERN_INFO "SE");
 	if(elev.running == 1)
 	{
 		return 1;
@@ -112,7 +113,7 @@ int start_elevator(void) {
 }
 
 int issue_request(int start_floor, int destination_floor, int type) {
-
+	printk(KERN_INFO "IR");
 	if(!elev.running)
 	{
 		return 1;
@@ -166,6 +167,7 @@ int issue_request(int start_floor, int destination_floor, int type) {
 }
 
 int stop_elevator(void) {
+		printk(KERN_INFO "STOPE");
 	if((!elev.running)||(elev.stopped))
 	{
 		return 1;
@@ -212,6 +214,7 @@ int stop_elevator(void) {
 //next elevator move
 int travel(int curfl, int destfl)
 {
+		printk(KERN_INFO "T");
 	if(curfl < destfl)
 	{
 		ssleep(2);
@@ -233,6 +236,7 @@ int travel(int curfl, int destfl)
 	
 }
 int loading(void) {
+		printk(KERN_INFO "L");
 	struct list_head *temp1;
 	struct list_head *temp2;
 	struct list_head temp_list;
@@ -256,6 +260,7 @@ int loading(void) {
 }
 
 int unloading(void) {
+		printk(KERN_INFO "U");
 	struct list_head *temp1;
 	struct list_head *temp2;
 	struct list_head temp_list;
@@ -292,8 +297,10 @@ int unloading(void) {
 
 int elev_thread_run(void *data)
 {
+		printk(KERN_INFO "ETR");
 	while(!kthread_should_stop())
 	{
+		
 		switch(elev.status)
 		{
 			case LOADING:
@@ -303,7 +310,7 @@ int elev_thread_run(void *data)
 				unloading();
 				struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
 				elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-				
+				break;
 				
 			} case UP:
 			case DOWN:
@@ -322,7 +329,7 @@ int elev_thread_run(void *data)
 					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 					
 				}
-				
+				break;
 			} case IDLE:
 			{
 				if(!list_empty(&elev.list))
@@ -336,72 +343,67 @@ int elev_thread_run(void *data)
 						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
 						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 					}
-				} default :
+				} else if(waiting>=1)
 				{
-					elev.status = OFFLINE;
+					int c = elev.current_floor;
+					int sptp = 6; //shortest path to passenger
+					int ud = 0; //0 = down, 1 = up
+					for(int i = 0; i < 6; i++)
+					{
+						if(elev.floor[i].num_passengers > 0)
+						{
+							if(c > i)
+							{
+								if((c-i) < sptp)
+								{
+									sptp = c-i;
+									ud = d;
+								}
+							} else
+							{
+								if((i-c) < sptp)
+								{
+									sptp = i-c;
+									ud = 1;
+								}
+							}
+						}
+					}
+					if(ud == 0)
+					{
+						elev.current_floor = travel(elev.current_floor, elev.current_floor - 1);
+					} else
+					{
+						elev.current_floor = travel(elev.current_floor, elev.current_floor + 1);
+					}
+					
+					
+				}
+				break;
+	
+			}
+			case OFFLINE:
+				{
+					if(waiting > 0)
+					{
+						elev.status = IDLE;
+					}
 					break;
 				}
+			default :
+			{
+				elev.status = OFFLINE;
+				break;
 			}
 		}
+
 	}
 	return 0;
 }
 //filing in passengers
-static ssize_t line_up(struct file *file, char __user *ubuf, size_t count, loff_t *ppos)
-{
-	 int ye, cur, des;
 
-    if (copy_from_user(&ye, ubuf, sizeof(int)) != 0 || copy_from_user(&cur, ubuf + sizeof(int), sizeof(int)) != 0 || copy_from_user(&des, ubuf + 2 * sizeof(int), sizeof(int)) != 0) 
-	{
-        return -EFAULT;
-    }
-    
-    if(ye==0)
-    {
-    	ye = 100;
-	} else if(ye==1)
-    {
-    	ye = 150;
-	}else if(ye==2)
-    {
-    	ye = 200;
-	}else if(ye==3)
-    {
-    	ye = 250;
-	} else
-	{
-		printk(KERN_INFO "Error: Invalid Year");
-		return -ENOMEM;
-	}
-	
-	if((cur>5)||(cur<0))
-	{
-		printk(KERN_INFO "Error: Invalid Starting Floor");
-		return -ENOMEM;
-	}
-	if((des>5)||(des<0))
-	{
-		printk(KERN_INFO "Error: Invalid Destination Floor");
-		return -ENOMEM;
-	}
-	
-	struct passenger new_passenger;
-	new_passenger.year = ye;
-	new_passenger.current_floor = cur;
-	new_passenger.destination_floor = des;
-	/*new_passenger->id = next_passenger_id++;
-	if(next_passenger_id > 'Z')
-	{
-		next_passenger_id = 'A';
-	}*/
-	INIT_LIST_HEAD(&new_passenger.list);
-	//list_add_tail(&new_passenger.list, &passenger.list);
-	list_add_tail(&new_passenger.list, &elev.floor[new_passenger.current_floor].list);
-	waiting++;
-	
-}
 void thread_init_param(struct thread_param *param)
-{
+{	printk(KERN_INFO "TIP");
 	static int id = 1;
 	param->id = id++;
 	param->cnt = 0;
@@ -411,6 +413,7 @@ void thread_init_param(struct thread_param *param)
 }
 //part 3(5) additions (not done)
 static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count, loff_t *ppos) {
+		printk(KERN_INFO "ER");
 	char buf[4096];
 	char *ptr = buf;
 	int len = 0;
@@ -494,7 +497,7 @@ static const struct proc_ops elevator_fops =
 	.proc_read = elevator_read,
 };
 static int __init elevator_init(void)
-{
+{	printk(KERN_INFO "EI");
 	STUB_start_elevator = start_elevator;
 	STUB_issue_request = issue_request;
 	STUB_stop_elevator = stop_elevator;
@@ -524,7 +527,7 @@ static int __init elevator_init(void)
 	return 0;
 }
 static void __exit elevator_exit(void)
-{
+{	printk(KERN_INFO "EE");
 	STUB_start_elevator = NULL;
 	STUB_issue_request = NULL;
 	STUB_stop_elevator = NULL;
