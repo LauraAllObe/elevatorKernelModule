@@ -257,6 +257,7 @@ int unloading(void) {
 				elev.current_weight -= p->year;
 				list_move_tail(temp1, &temp_list);
 				serviced++;
+				waiting--;
 			}
 		}
 			
@@ -293,8 +294,14 @@ int elev_thread_run(void *data)
 					ssleep(1);
 					loading();
 					unloading();
-					struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-					elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
+					if(!list_empty(&elev.list))
+					{
+						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
+						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);	
+					} else
+					{
+						elev.status = IDLE;
+					}
 					break;
 					
 				} case UP:
