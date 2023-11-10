@@ -413,6 +413,7 @@ int elev_thread_run(void *data)
 			}
 		} else
 		{
+			elev.status = OFFLINE;
 			printk(KERN_INFO "OFFLINE");
 			ssleep(1);
 		}
