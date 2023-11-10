@@ -180,6 +180,10 @@ int stop_elevator(void) {
 	{
 		return 1;
 	}
+	if((elev.status == IDLE)&&(list_empty(&elev.list)))
+	{
+		elev.status = OFFLINE;
+	}
 	elev.running = 0;
 	elev.stopped = 1;
 	return 0;
