@@ -1,1 +1,0 @@
-cmd_/home/lauraallobe/cop4610proj2/part2/build/Module.symvers :=  scripts/mod/modpost -m -a     -o /home/lauraallobe/cop4610proj2/part2/build/Module.symvers -T /home/lauraallobe/cop4610proj2/part2/build/modules.order -i Module.symvers -e 

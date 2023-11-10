@@ -294,14 +294,17 @@ int elev_thread_run(void *data)
 		printk(KERN_INFO "ETR");
 	while(!kthread_should_stop())
 	{
-		if(elev.running)
+		if((elev.running)||(!list_empty(&elev.list)))
 		{
 			switch(elev.status)
 			{
 				case LOADING:
 				{	printk(KERN_INFO "LOADING");
 					ssleep(1);
-					loading();
+					if(elev.running)
+					{
+						loading();
+					}
 					unloading();
 					if(!list_empty(&elev.list))
 					{
@@ -317,7 +320,7 @@ int elev_thread_run(void *data)
 				case DOWN:
 				{
 					
-					if(elev.floor[elev.current_floor].num_passengers > 0)
+					if((elev.floor[elev.current_floor].num_passengers > 0)&&(elev.running))
 					{
 						elev.status = LOADING;
 						
@@ -343,7 +346,7 @@ int elev_thread_run(void *data)
 				} case IDLE:
 				{
 					
-					if((elev.floor[elev.current_floor].num_passengers > 0)||(!list_empty(&elev.list)))
+					if(((elev.floor[elev.current_floor].num_passengers > 0)&&(elev.running))||(!list_empty(&elev.list)))
 					{
 						elev.status = LOADING;
 					} else if(waiting>=1)
@@ -459,7 +462,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    len += snprintf(ptr + len, 4096 - len, "\n");
 
 	    // Current floor
-	    len += snprintf(ptr + len, 4096 - len, "Current floor: %d\n", elev.current_floor);
+	    len += snprintf(ptr + len, 4096 - len, "Current floor: %d\n", elev.current_floor+1);
 
 	    // Current load
 	    len += snprintf(ptr + len, 4096 - len, "Current load: %d lbs\n", elev.current_weight);
@@ -468,7 +471,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 	    len += snprintf(ptr + len, 4096 - len, "Elevator status: ");
 	    struct passenger *pass;
 	    list_for_each_entry(pass, &elev.list, list) {
-		len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(pass->year), pass->destination_floor);
+		len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(pass->year), pass->destination_floor+1);
 	    }
 	    len += snprintf(ptr + len, 4096 - len, "\n");
 
@@ -483,7 +486,7 @@ static ssize_t elevator_read(struct file *file, char __user *ubuf, size_t count,
 		    (i == elev.current_floor ? '*' : ' '), i + 1, elev.floor[i].num_passengers);
 		struct passenger *floor_pass;
 		list_for_each_entry(floor_pass, &elev.floor[i].list, list) {
-		    len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(floor_pass->year), floor_pass->destination_floor);
+		    len += snprintf(ptr + len, 4096 - len, "%c%d ", passenger_type_to_char(floor_pass->year), floor_pass->destination_floor+1);
 		}
 		len += snprintf(ptr + len, 4096 - len, "\n");
 	    }
