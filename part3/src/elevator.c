@@ -387,7 +387,8 @@ int elev_thread_run(void *data)
 						}
 						
 						
-					} else
+					}
+					else
 					{
 						printk(KERN_INFO "REMAIN IDLE");
 						ssleep(1);	
