@@ -229,6 +229,7 @@ int loading(void) {
 			struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
 			list_del(&headcopy->list);
 			list_add_tail(&headcopy->list, &elev.list);
+			elev.current_weight += headcopy->year;
 		}
 				
 		mutex_unlock(&thread.mutex2);
@@ -253,6 +254,7 @@ int unloading(void) {
 			if(p->destination_floor == elev.current_floor)
 			{
 				elev.current_passengers--;
+				elev.current_weight -= p->year;
 				list_move_tail(temp1, &temp_list);
 				serviced++;
 			}
@@ -271,7 +273,7 @@ int unloading(void) {
 	}
 	if((elev.stopped)&&(list_empty(&elev.list)))
 	{
-		elev.status == OFFLINE;
+		elev.status = OFFLINE;
 	}
 	
 	return 0; 
@@ -298,6 +300,7 @@ int elev_thread_run(void *data)
 				} case UP:
 				case DOWN:
 				{
+					
 					if(elev.floor[elev.current_floor].num_passengers > 0)
 					{
 						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
@@ -307,12 +310,23 @@ int elev_thread_run(void *data)
 							printk(KERN_INFO "LOAD FROM UP/DOWN");
 						}
 						
-					} else
+					} else if(!list_empty(&elev.list))
 					{
 						struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
 						printk(KERN_INFO "TRAVEL FROM UP/DOWN");
 						elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
 						
+					} else
+					{
+						if(elev.status == DOWN)
+						{
+							printk(KERN_INFO "TRAVEL DOWN FROM UP/DOWN");
+							elev.current_floor = travel(elev.current_floor, elev.current_floor - 1);
+						} else
+						{
+							printk(KERN_INFO "TRAVEL UP FROM UP/DOWN");
+							elev.current_floor = travel(elev.current_floor, elev.current_floor + 1);
+						}
 					}
 					break;
 				} case IDLE:
@@ -543,18 +557,12 @@ static void __exit elevator_exit(void)
 	struct list_head *temp2;
 	struct list_head temp_list;
 	INIT_LIST_HEAD(&temp_list);
-	if (mutex_lock_interruptible(&thread.mutex1) == 0)
+	for(int i = 0; i < 6; i++)
 	{
-		for(int i = 0; i < 6; i++)
+		list_for_each_safe(temp1, temp2, &elev.floor[i].list)
 		{
-			list_for_each_safe(temp1, temp2, &elev.floor[i].list)
-			{
-				list_move_tail(temp1, &temp_list);
-			}
-			elev.floor[i].num_passengers = 0;
+			list_move_tail(temp1, &temp_list);
 		}
-				
-		mutex_unlock(&thread.mutex1);
 	}
 	
 	struct passenger *p;
@@ -565,6 +573,18 @@ static void __exit elevator_exit(void)
 		kfree(p);
 		
 	}
+	list_for_each_safe(temp1, temp2, &elev.list)
+	{
+		list_move_tail(temp1, &temp_list);
+	}
+	list_for_each_safe(temp1, temp2, &temp_list)
+	{
+		p = list_entry(temp1, struct passenger, list);
+		list_del(temp1);
+		kfree(p);
+		
+	}
+	
 	printk(KERN_INFO "Elevator module unloaded\n");
 	//remove_proc_entry(ENTRY_NAME, PARENT);//was this meant to be for pt3(5)?
 	//pt3(5) additions
