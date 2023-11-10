@@ -180,39 +180,8 @@ int stop_elevator(void) {
 	{
 		return 1;
 	}
-	struct list_head *temp1;
-	struct list_head *temp2;
-	struct list_head temp_list;
-	INIT_LIST_HEAD(&temp_list);
-	if (mutex_lock_interruptible(&thread.mutex1) == 0)
-	{
-		for(int i = 0; i < 6; i++)
-		{
-			list_for_each_safe(temp1, temp2, &elev.floor[i].list)
-			{
-				list_move_tail(temp1, &temp_list);
-			}
-			elev.floor[i].num_passengers = 0;
-		}
-				
-		mutex_unlock(&thread.mutex1);
-	}
-	
-	struct passenger *p;
-	list_for_each_safe(temp1, temp2, &temp_list)
-	{
-		p = list_entry(temp1, struct passenger, list);
-		list_del(temp1);
-		kfree(p);
-		
-	}
-	for(int i = 0; i < 6; i++)
-	{
-		elev.floor[i].num_passengers = 0;
-	}
 	elev.running = 0;
 	elev.stopped = 1;
-	elev.status = OFFLINE;
 	return 0;
 }
 //need to setup in init and set to NULL in exit
@@ -300,6 +269,10 @@ int unloading(void) {
 		kfree(p);
 		
 	}
+	if((elev.stopped)&&(list_empty(&elev.list)))
+	{
+		elev.status == OFFLINE;
+	}
 	
 	return 0; 
 }
@@ -344,6 +317,7 @@ int elev_thread_run(void *data)
 					break;
 				} case IDLE:
 				{
+					
 					if(elev.floor[elev.current_floor].num_passengers > 0)
 					{
 						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
@@ -565,11 +539,31 @@ static void __exit elevator_exit(void)
 	kthread_stop(thread.kthread);
 	mutex_destroy(&thread.mutex1);
 	mutex_destroy(&thread.mutex2);
-	struct passenger *passenger, *next;
-	list_for_each_entry_safe(passenger, next, &elev.list, list)
+	struct list_head *temp1;
+	struct list_head *temp2;
+	struct list_head temp_list;
+	INIT_LIST_HEAD(&temp_list);
+	if (mutex_lock_interruptible(&thread.mutex1) == 0)
 	{
-		list_del(&passenger->list);
-		kfree(passenger);
+		for(int i = 0; i < 6; i++)
+		{
+			list_for_each_safe(temp1, temp2, &elev.floor[i].list)
+			{
+				list_move_tail(temp1, &temp_list);
+			}
+			elev.floor[i].num_passengers = 0;
+		}
+				
+		mutex_unlock(&thread.mutex1);
+	}
+	
+	struct passenger *p;
+	list_for_each_safe(temp1, temp2, &temp_list)
+	{
+		p = list_entry(temp1, struct passenger, list);
+		list_del(temp1);
+		kfree(p);
+		
 	}
 	printk(KERN_INFO "Elevator module unloaded\n");
 	//remove_proc_entry(ENTRY_NAME, PARENT);//was this meant to be for pt3(5)?
