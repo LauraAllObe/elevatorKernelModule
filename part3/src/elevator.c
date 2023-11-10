@@ -219,17 +219,23 @@ int loading(void) {
 	struct list_head *temp2;
 	struct list_head temp_list;
 	INIT_LIST_HEAD(&temp_list);
-	
 	if (mutex_lock_interruptible(&thread.mutex2) == 0)
 	{
 		list_for_each_safe(temp1, temp2, &elev.floor[elev.current_floor].list)
 		{
-			elev.current_passengers++;
-			elev.floor[elev.current_floor].num_passengers--;
 			struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-			list_del(&headcopy->list);
-			list_add_tail(&headcopy->list, &elev.list);
-			elev.current_weight += headcopy->year;
+			if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
+			{
+				elev.current_passengers++;
+				elev.floor[elev.current_floor].num_passengers--;
+				list_del(&headcopy->list);
+				list_add_tail(&headcopy->list, &elev.list);
+				elev.current_weight += headcopy->year;
+				waiting--;
+			} else
+			{
+				break;
+			}
 		}
 				
 		mutex_unlock(&thread.mutex2);
@@ -257,7 +263,6 @@ int unloading(void) {
 				elev.current_weight -= p->year;
 				list_move_tail(temp1, &temp_list);
 				serviced++;
-				waiting--;
 			}
 		}
 			
