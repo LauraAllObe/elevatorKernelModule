@@ -301,7 +301,10 @@ int elev_thread_run(void *data)
 				case LOADING:
 				{	printk(KERN_INFO "LOADING");
 					ssleep(1);
-					loading();
+					if(elev.running)
+					{
+						loading();
+					}
 					unloading();
 					if(!list_empty(&elev.list))
 					{
@@ -317,7 +320,7 @@ int elev_thread_run(void *data)
 				case DOWN:
 				{
 					
-					if(elev.floor[elev.current_floor].num_passengers > 0)
+					if((elev.floor[elev.current_floor].num_passengers > 0)&&(elev.running))
 					{
 						elev.status = LOADING;
 						
@@ -343,7 +346,7 @@ int elev_thread_run(void *data)
 				} case IDLE:
 				{
 					
-					if((elev.floor[elev.current_floor].num_passengers > 0)||(!list_empty(&elev.list)))
+					if(((elev.floor[elev.current_floor].num_passengers > 0)&&(elev.running))||(!list_empty(&elev.list)))
 					{
 						elev.status = LOADING;
 					} else if(waiting>=1)
