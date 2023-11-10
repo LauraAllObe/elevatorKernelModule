@@ -387,10 +387,15 @@ int elev_thread_run(void *data)
 						}
 						
 						
+					} else if(elev.stopped)
+					{
+						printk(KERN_INFO "TURNING OFF FROM IDLE");
+						elev.status = OFFLINE;
+						ssleep(1);	
 					} else
 					{
 						printk(KERN_INFO "REMAIN IDLE");
-						ssleep(1);	
+						ssleep(1);
 					}
 					break;
 		
