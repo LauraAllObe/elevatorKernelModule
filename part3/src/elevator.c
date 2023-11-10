@@ -294,7 +294,7 @@ int elev_thread_run(void *data)
 		printk(KERN_INFO "ETR");
 	while(!kthread_should_stop())
 	{
-		if(elev.running)
+		if((elev.running)||(!list_empty(&elev.list)))
 		{
 			switch(elev.status)
 			{
