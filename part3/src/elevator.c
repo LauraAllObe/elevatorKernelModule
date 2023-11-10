@@ -339,19 +339,9 @@ int elev_thread_run(void *data)
 				} case IDLE:
 				{
 					
-					if(elev.floor[elev.current_floor].num_passengers > 0)
+					if((elev.floor[elev.current_floor].num_passengers > 0)||(!list_empty(&elev.list)))
 					{
-						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
-						{
-							printk(KERN_INFO "LOADING FROM IDLE");
-							elev.status = LOADING;
-						} else
-						{
-							struct passenger *headcopy = list_first_entry(&elev.list, struct passenger, list);
-							printk(KERN_INFO "TRAVEL FROM IDLE");
-							elev.current_floor = travel(elev.current_floor, headcopy->destination_floor);
-						}
+						elev.status = LOADING;
 					} else if(waiting>=1)
 					{
 						printk(KERN_INFO "CHECKING SPTP");
