@@ -315,12 +315,7 @@ int elev_thread_run(void *data)
 					
 					if(elev.floor[elev.current_floor].num_passengers > 0)
 					{
-						struct passenger *headcopy = list_first_entry(&elev.floor[elev.current_floor].list, struct passenger, list);
-						if(((headcopy->year+elev.current_weight) <= 750)&&(elev.current_passengers < 5))
-						{
-							elev.status = LOADING;
-							printk(KERN_INFO "LOAD FROM UP/DOWN");
-						}
+						elev.status = LOADING;
 						
 					} else if(!list_empty(&elev.list))
 					{
