@@ -19,6 +19,8 @@ MODULE_DESCRIPTION("kernel module for pt3/syscalls");
 #define PARENT NULL
 #define BUFFER_SIZE 5
 
+static struct proc_dir_entry *syscalls_entry;
+
 int start_elevator(void);
 int issue_request(int start_floor, int destination_floor, int type);
 int stop_elevator(void);
