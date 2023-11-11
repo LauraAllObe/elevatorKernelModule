@@ -1,1 +1,0 @@
-savedcmd_/home/cop4610/project-2-group-23/part3/build/modules.order := {   echo /home/cop4610/project-2-group-23/part3/build/src/elevator.o; :; } > /home/cop4610/project-2-group-23/part3/build/modules.order

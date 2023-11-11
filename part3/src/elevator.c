@@ -200,14 +200,16 @@ int travel(int curfl, int destfl)
 	if(curfl < destfl)
 	{
 		printk(KERN_INFO "UP");
-		ssleep(2);
+		
 		elev.status = UP;
+		ssleep(2);
 		return(curfl+1);
 	} else if(curfl > destfl)
 	{
 		printk(KERN_INFO "DOWN");
-		ssleep(2);
+		
 		elev.status = DOWN;
+		ssleep(2);
 		return(curfl-1);
 	} else
 	{
@@ -314,6 +316,7 @@ int elev_thread_run(void *data)
 					{
 						elev.status = IDLE;
 					}
+					
 					break;
 					
 				} case UP:
@@ -387,11 +390,6 @@ int elev_thread_run(void *data)
 						}
 						
 						
-					} else if(elev.stopped)
-					{
-						printk(KERN_INFO "TURNING OFF FROM IDLE");
-						elev.status = OFFLINE;
-						ssleep(1);	
 					} else
 					{
 						printk(KERN_INFO "REMAIN IDLE");
@@ -417,6 +415,7 @@ int elev_thread_run(void *data)
 			}
 		} else
 		{
+			elev.status = OFFLINE;
 			printk(KERN_INFO "OFFLINE");
 			ssleep(1);
 		}
