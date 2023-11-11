@@ -102,7 +102,8 @@ elevator/
 |   |   |   ├── Makefile
 |   |   |   ├── README.md
 |   |   |   ├── test-syscalls.h
-|   |   |   └── test-syscalls.c
+|   |   |   ├── test-syscalls.c
+|   |   |   └── syscheck.c
 |   |   └── elevator-test/
 |   |       ├── Makefile
 |   |       ├── README.md
