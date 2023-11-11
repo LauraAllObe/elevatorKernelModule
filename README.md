@@ -123,7 +123,7 @@ elevator/
 ## Part 1
 
 ### Compilation
-make (in pt1 directory) or main directory for all parts
+make (in pt1 directory)
 
 This will build the executable part1 and empty in the project-2-group-23/part1 directory.
 
@@ -134,7 +134,7 @@ outputting the results to empty.trace and part1.trace, respectively.
 ## Part 2
 
 ### Compilation
-make (in pt2 directory) or main directory for all parts
+make (in pt2 directory)
 
 This will build the executable in project-2-group-23/part2 directory
 ### Execution
@@ -146,7 +146,7 @@ This will generate a message that tells if the system calls installed or not
 ## Part 3
 
 ### Compilation
-make (in pt3 directory) or main directory for all parts
+make (in pt3 directory)
 
 This will build the executable in project-2-group-23/part3 directory
 ### Execution
@@ -167,4 +167,4 @@ None that we are aware of.
 ## Considerations
 .ko files are produced in the same directory as their .c files. For example,
 for elevator.c located at part3/src/elevator.c, the .ko file will be prodiced
-at part3/src/elevator.ko.
+at part3/src/elevator.ko. No guarantee project directory makefile works.
