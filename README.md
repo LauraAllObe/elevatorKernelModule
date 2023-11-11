@@ -153,7 +153,7 @@ This will build the executable in project-2-group-23/part3 directory
 ### Execution
 sudo insmod src/elevator.ko
 sudo insmod syscalls.ko
-./test_syscalls                     in part3/test/system-call-test directory
+./test-syscalls                     in part3/test/system-call-test directory
 ./producer [number_of_passengers]   in part3/test/elevator-test directory
 ./consumer --start                  in part3/test/elevator-test directory
 ./consumer --stop                   in part3/test/elevator-test directory
